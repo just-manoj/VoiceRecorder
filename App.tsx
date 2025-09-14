@@ -1,20 +1,46 @@
-import { StatusBar } from 'react-native';
-import React from 'react';
+import { StatusBar, View } from 'react-native';
+import React, { useEffect } from 'react';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 
 import AudioList from './src/components/AudioList';
-import { audioList } from './src/data';
 import { colors } from './src/const/Colors';
 import Header from './src/components/Header';
 import styles from './src/styles/AppStyles';
+import MicIcon from './src/components/MicIcon';
+import RecorderModal from './src/components/RecorderModal';
+import AppViewModal from './src/viewModal/AppViewModal';
 
 const App = () => {
+  const views = AppViewModal();
+
+  useEffect(() => {
+    views.requestAndroidPermissions();
+    views.connectToTable();
+  }, []);
+  
   return (
-    <SafeAreaProvider style={styles.container}>
-      <SafeAreaView>
+    <SafeAreaProvider>
+      <SafeAreaView style={styles.container}>
         <StatusBar barStyle={'dark-content'} backgroundColor={colors.white} />
         <Header />
-        <AudioList audioList={audioList} />
+        <View
+          style={{
+            flex: 1,
+            justifyContent: 'space-between',
+          }}
+        >
+          <AudioList audioList={views.recordList} />
+          <MicIcon changeRecorderModalState={views.changeRecorderModalState} />
+        </View>
+        {views.recorderModalShown && (
+          <RecorderModal
+            pauseRecording={views.pauseRecording}
+            resumeRecording={views.resumeRecording}
+            stopRecording={views.stopRecording}
+            playerData={views.playerData}
+            changeRecorderModalState={views.changeRecorderModalState}
+          />
+        )}
       </SafeAreaView>
     </SafeAreaProvider>
   );

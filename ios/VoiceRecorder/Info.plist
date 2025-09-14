@@ -41,7 +41,15 @@
 		<string>arm64</string>
 	</array>
 	<key>NSMicrophoneUsageDescription</key>
-<string>Give permission to use your microphone. Your record wont be shared without your permission.</string>
+	<string>Give permission to use your microphone. Your record wont be shared without your permission.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>We need microphone access to record audio.</string>
+
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>We need photo library access to save recordings.</string>
+
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>We need photo library access to read recordings.</string>
 	<key>UISupportedInterfaceOrientations</key>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>
