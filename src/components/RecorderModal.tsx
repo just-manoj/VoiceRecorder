@@ -10,7 +10,7 @@ const RecorderModal: React.FC<RecorderModalProbs> = ({
   pauseRecording,
   resumeRecording,
   stopRecording,
-  playerData,
+  recorderData,
   changeRecorderModalState,
 }) => {
   return (
@@ -37,20 +37,20 @@ const RecorderModal: React.FC<RecorderModalProbs> = ({
           </TouchableOpacity>
           <View style={styles.mainContainer}>
             <View style={styles.durationContainer}>
-              <Text style={styles.duration}>{playerData.duration}</Text>
+              <Text style={styles.duration}>{recorderData.duration}</Text>
             </View>
             <View style={styles.controllerContainer}>
               <TouchableOpacity
                 onPress={() => {
-                  if (playerData.isRecording) {
-                    pauseRecording();
+                  if (recorderData.isRecording) {
+                    pauseRecording(true);
                   } else {
                     resumeRecording();
                   }
                 }}
               >
                 <Ionicons
-                  name={playerData.isRecording ? 'pause' : 'play'}
+                  name={recorderData.isRecording ? 'pause' : 'play'}
                   size={40}
                   color={colors.black}
                   style={styles.icon}

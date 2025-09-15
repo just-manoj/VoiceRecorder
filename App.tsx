@@ -17,7 +17,7 @@ const App = () => {
     views.requestAndroidPermissions();
     views.connectToTable();
   }, []);
-  
+
   return (
     <SafeAreaProvider>
       <SafeAreaView style={styles.container}>
@@ -29,7 +29,11 @@ const App = () => {
             justifyContent: 'space-between',
           }}
         >
-          <AudioList audioList={views.recordList} />
+          <AudioList
+            audioList={views.recordList}
+            playerData={views.playerData}
+            playAudioHandler={views.playAudioHandler}
+          />
           <MicIcon changeRecorderModalState={views.changeRecorderModalState} />
         </View>
         {views.recorderModalShown && (
@@ -37,7 +41,7 @@ const App = () => {
             pauseRecording={views.pauseRecording}
             resumeRecording={views.resumeRecording}
             stopRecording={views.stopRecording}
-            playerData={views.playerData}
+            recorderData={views.recorderData}
             changeRecorderModalState={views.changeRecorderModalState}
           />
         )}

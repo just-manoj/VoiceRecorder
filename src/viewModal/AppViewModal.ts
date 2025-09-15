@@ -9,6 +9,7 @@ import Sound, {
   AudioSet,
 } from 'react-native-nitro-sound';
 import { SQLiteDatabase } from 'react-native-sqlite-storage';
+import BackgroundTimer from 'react-native-background-timer';
 
 import {
   addRecordDb,
@@ -16,19 +17,60 @@ import {
   createTables,
   geAllRecordsDb,
 } from '../util/Database';
-import { Audio, PlayerData } from '../modal/AppModal';
+import { Audio, PlayerData, RecorderData } from '../modal/AppModal';
 import { moveToDocuments } from '../util/FileSystem';
 
 const AppViewModal = () => {
+  let backgroundInterval: number | null = null;
+
   Sound.addRecordBackListener((e: RecordBackType) => {
-    const formatted2 = Sound.mmss(Math.floor(e.currentPosition / 1000));
-    setPlayerData(prev => ({ ...prev, duration: formatted2 }));
+    if (e.currentMetering !== undefined) {
+      if (e.currentMetering < -100) {
+        setSilenceCounter(prev => prev + 1);
+      }
+
+      const formatted2 = Sound.mmss(Math.floor(e.currentPosition / 1000));
+      setRecorderData(prev => ({ ...prev, duration: formatted2 }));
+
+      if (silenceCounter >= 3) {
+        setRecorderData(prev => ({ ...prev, isRecording: false }));
+        pauseRecording(false);
+
+        if (!backgroundInterval) {
+          backgroundInterval = BackgroundTimer.setInterval(() => {
+            if (!manualPause && silenceCounter >= 3) {
+              try {
+                resumeRecording();
+                setSilenceCounter(0);
+
+                // stop background loop once resumed
+                if (backgroundInterval) {
+                  BackgroundTimer.clearInterval(backgroundInterval);
+                  backgroundInterval = null;
+                }
+              } catch (err) {
+                console.log(err);
+              }
+            }
+          }, 1000);
+        }
+      }
+    }
+  });
+
+  Sound.addPlaybackEndListener(e => {
+    setPlayerData({
+      isPlaying: false,
+      id: -1,
+    });
   });
 
   const dbConnection = useRef<SQLiteDatabase | null>(null);
 
   const [recordList, setRecordList] = useState<Audio[]>([]);
   const [recorderModalShown, setRecorderModalShown] = useState(false);
+  const [manualPause, setManualPause] = useState(false);
+  const [silenceCounter, setSilenceCounter] = useState(0);
   const [managePermission, setManagePermission] = useState<{
     mic: boolean;
     storage: boolean;
@@ -36,13 +78,17 @@ const AppViewModal = () => {
     mic: false,
     storage: false,
   });
-  const [playerData, setPlayerData] = useState<PlayerData>({
+  const [recorderData, setRecorderData] = useState<RecorderData>({
     isRecording: false,
     id: -1,
     fileName: '',
     filePath: '',
     duration: '00:00',
     createdAt: '',
+  });
+  const [playerData, setPlayerData] = useState<PlayerData>({
+    isPlaying: false,
+    id: -1,
   });
 
   const changeRecorderModalState = () => {
@@ -59,6 +105,12 @@ const AppViewModal = () => {
         'Please allow mic and storage permission',
       );
     }
+    Sound.pausePlayer();
+    setPlayerData({
+      id: -1,
+      isPlaying: true,
+    });
+    setManualPause(() => false);
   };
 
   const requestAndroidPermissions = async () => {
@@ -117,32 +169,38 @@ const AppViewModal = () => {
       AudioChannels: 1,
     };
 
-    const meteringEnabled = true; 
+    const meteringEnabled = true;
 
-    await Sound.startRecorder(
-      undefined, 
-      audioSet,
-      meteringEnabled,
-    );
-
-    setPlayerData(prev => ({ ...prev, isRecording: true }));
+    await Sound.startRecorder(undefined, audioSet, meteringEnabled);
+    setManualPause(() => false);
+    setRecorderData(prev => ({ ...prev, isRecording: true }));
   };
 
-  const pauseRecording = async () => {
+  const pauseRecording = async (isManualPause: boolean) => {
+    if (isManualPause) {
+      setManualPause(() => true);
+    } else {
+      setManualPause(() => false);
+    }
     await Sound.pauseRecorder();
-    setPlayerData(prev => ({ ...prev, isRecording: false }));
+    setRecorderData(prev => ({ ...prev, isRecording: false }));
+    setSilenceCounter(() => 0);
   };
 
   const resumeRecording = async () => {
+    setSilenceCounter(() => 0);
+    setManualPause(() => false);
     await Sound.resumeRecorder();
-    setPlayerData(prev => ({ ...prev, isRecording: true }));
+    setRecorderData(prev => ({ ...prev, isRecording: true }));
   };
 
   const stopRecording = async () => {
+    setSilenceCounter(() => 0);
+    setManualPause(() => false);
     const result = await Sound.stopRecorder();
     Sound.removeRecordBackListener();
     const newPath = await moveToDocuments(result);
-    setPlayerData(prev => ({
+    setRecorderData(prev => ({
       ...prev,
       isRecording: false,
       createdAt: new Date().toString(),
@@ -189,14 +247,14 @@ const AppViewModal = () => {
       return;
     }
     const result = await addRecordDb(dbConnection.current, {
-      ...playerData,
+      ...recorderData,
       createdAt,
       filePath,
       fileName,
     });
     if (result[0].insertId) {
       changeRecorderModalState();
-      setPlayerData(() => ({
+      setRecorderData(() => ({
         isRecording: false,
         id: -1,
         fileName: '',
@@ -207,6 +265,27 @@ const AppViewModal = () => {
     }
   };
 
+  const playAudioHandler = (audioData: Audio) => {
+    if (audioData.id === playerData.id) {
+      if (playerData.isPlaying) {
+        Sound.pausePlayer();
+        setPlayerData({
+          id: audioData.id,
+          isPlaying: false,
+        });
+        return;
+      } else {
+        Sound.resumePlayer();
+      }
+    } else {
+      Sound.startPlayer(audioData.filePath);
+    }
+    setPlayerData({
+      id: audioData.id,
+      isPlaying: true,
+    });
+  };
+
   return {
     recorderModalShown,
     changeRecorderModalState,
@@ -215,11 +294,13 @@ const AppViewModal = () => {
     pauseRecording,
     resumeRecording,
     stopRecording,
-    playerData,
+    recorderData,
     getAllRecords,
     addNewRecord,
     recordList,
     connectToTable,
+    playerData,
+    playAudioHandler,
   };
 };
 

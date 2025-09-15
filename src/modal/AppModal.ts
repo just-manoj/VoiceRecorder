@@ -6,12 +6,19 @@ export interface Audio {
   createdAt: string;
 }
 
-export interface PlayerData extends Audio {
+export interface RecorderData extends Audio {
   isRecording: boolean;
+}
+
+export interface PlayerData {
+  isPlaying: boolean;
+  id: number;
 }
 
 export interface AudioListProbs {
   audioList: Audio[];
+  playerData: PlayerData;
+  playAudioHandler: (audioData: Audio) => void;
 }
 
 export interface MicIconProbs {
@@ -19,9 +26,14 @@ export interface MicIconProbs {
 }
 
 export interface RecorderModalProbs {
-  pauseRecording: () => void;
+  pauseRecording: (isManualPause: boolean) => void;
   resumeRecording: () => void;
   stopRecording: () => void;
-  playerData: PlayerData;
+  recorderData: RecorderData;
   changeRecorderModalState: () => void;
+}
+
+export interface AudioItemProbs extends Audio {
+  playerData: PlayerData;
+  playAudioHandler: (audioData: Audio) => void;
 }

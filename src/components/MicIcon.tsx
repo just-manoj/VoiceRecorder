@@ -10,8 +10,9 @@ const MicIcon: React.FC<MicIconProbs> = ({ changeRecorderModalState }) => {
     <TouchableOpacity
       style={{
         alignItems: 'center',
-        marginBottom: 20,
         backgroundColor: colors.white,
+        justifyContent: 'center',
+        flex: 0.1,
       }}
       onPress={changeRecorderModalState}
     >
